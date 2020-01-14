@@ -5,6 +5,7 @@ import agent from '../api/agent';
 import { history } from '../..';
 import { toast } from 'react-toastify';
 import { RootStore } from './rootStore';
+import { setActivityProps, createAttendee } from '../../utils';
 
 
 export default class ActivityStore {
@@ -39,7 +40,7 @@ export default class ActivityStore {
       const acts = await agent.Activities.list();
       runInAction('Loading activities', () => {
         acts.forEach(act => {
-          act.date = new Date(act.date);
+          setActivityProps(act, this.rootStore.userStore.user!);
           this.activityRegistry.set(act.id, act);
         });
         this.loading = false;
@@ -103,6 +104,13 @@ export default class ActivityStore {
     this.submitting = true;
     try {
       await agent.Activities.create(act);
+      const attendee = createAttendee(this.rootStore.userStore.user!);
+      attendee.isHost = true;
+      let attendees = [];
+      attendees.push(attendee);
+      act.attendees = attendees;
+      act.isHost = true;
+      act.isGoing = true;
       runInAction('Creating activity', () => {
         this.activityRegistry.set(act.id, act);
         this.selectedActivity = act;
@@ -142,4 +150,47 @@ export default class ActivityStore {
   @action deselectActivity = () => {
     this.selectedActivity = null;
   };
+
+  @action attendActivity = async () => {
+    const attendee = createAttendee(this.rootStore.userStore.user!);
+    const act = this.selectedActivity;
+    this.submitting = true;
+    try {
+      await agent.Activities.attend(act!.id);
+      runInAction('Adding Attendance', () => {
+        if(act) {
+          act.attendees.push(attendee);
+          act.isGoing = true;
+          this.activityRegistry.set(act.id, act);
+          this.submitting = false;
+        }
+      })
+    } catch (error) {
+      runInAction('Adding Attendance error',() => {
+        this.submitting = false;
+      })
+      toast.error('Problem attending the activity');
+    }
+  }
+
+  @action unattendActivity = async () => {
+    const act = this.selectedActivity;
+    this.submitting = true;
+    try {
+      await agent.Activities.unattend(act!.id);
+      runInAction('Unattending', () => {
+        if(act) {
+          act.attendees = act.attendees.filter(a => a.username !== this.rootStore.userStore.user!.username);
+          act.isGoing = false;
+          this.activityRegistry.set(act.id, act)
+          this.submitting = false;
+        }
+      })
+    } catch (error) {
+      runInAction('Unattending',() => {
+        this.submitting = false;
+      })
+      toast.error('Problem unattending the activity');
+    }
+  }
 }

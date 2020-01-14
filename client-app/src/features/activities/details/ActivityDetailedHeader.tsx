@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Segment, Image, Item, Header, Button } from 'semantic-ui-react';
 import { IActivity } from '../../../app/models/activity';
 import { observer } from 'mobx-react-lite';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
+import { RootStoreContext } from '../../../app/stores/rootStore';
 
 const activityImageStyle = {
   filter: 'brightness(35%)'
@@ -18,11 +19,17 @@ const activityImageTextStyle = {
   color: 'white'
 };
 
-const ActivityDetailedHeader: React.FC<{ act: IActivity }> = ({act}) => {
+const ActivityDetailedHeader: React.FC<{ act: IActivity }> = ({ act }) => {
+  const rootStore = useContext(RootStoreContext);
+  const { attendActivity, unattendActivity, submitting } = rootStore.activityStore;
   return (
     <Segment.Group>
       <Segment basic attached="top" style={{ padding: '0' }}>
-        <Image src={`/assets/images/categoryImages/${act.category}.jpg`} style={activityImageStyle} fluid />
+        <Image
+          src={`/assets/images/categoryImages/${act.category}.jpg`}
+          style={activityImageStyle}
+          fluid
+        />
         <Segment basic style={activityImageTextStyle}>
           <Item.Group>
             <Item>
@@ -42,11 +49,21 @@ const ActivityDetailedHeader: React.FC<{ act: IActivity }> = ({act}) => {
         </Segment>
       </Segment>
       <Segment clearing attached="bottom">
-        <Button color="teal">Join Activity</Button>
-        <Button>Cancel attendance</Button>
-        <Button as={Link} to={`/editactivity/${act.id}`} color="orange" floated="right">
-          Manage Event
-        </Button>
+        {act.isHost ? (
+          <Button
+            as={Link}
+            to={`/editactivity/${act.id}`}
+            color="orange"
+            floated="right"
+          >
+            {' '}
+            Manage Event{' '}
+          </Button>
+        ) : act.isGoing ? (
+          <Button loading={submitting} onClick={unattendActivity}>Cancel attendance</Button>
+        ) : (
+          <Button loading={submitting} onClick={attendActivity} color="teal">Join Activity</Button>
+        )}
       </Segment>
     </Segment.Group>
   );
