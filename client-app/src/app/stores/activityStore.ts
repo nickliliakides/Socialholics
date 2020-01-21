@@ -66,7 +66,7 @@ export default class ActivityStore {
       try {
         activity = await agent.Activities.details(id);
         runInAction('Loading activity', () => {
-          activity.date = new Date(activity.date)
+          setActivityProps(activity, this.rootStore.userStore.user!);
           this.selectedActivity = activity;
           this.activityRegistry.set(activity.id, activity);
           this.loading = false;

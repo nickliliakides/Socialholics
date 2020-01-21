@@ -37,6 +37,10 @@ body {
   margin-left: -6px;
 }
 
+.item > .ui.tiny.circular.image {
+  margin-bottom: 3px;
+}
+
 /*home page styles*/
 
 .masthead {
